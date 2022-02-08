@@ -1,0 +1,10 @@
+1. Clone repo.
+2. Build image.
+3. Run docker-compose.
+4. Prepare self-signed cert with the actual dateTime.
+5. Create a symlink to the actual certificate.
+6. Install nginx.
+7. Configure nginx from template (with the actual symlink of the certificate)
+8. Configure /etc/hosts.
+9. Allow to use self-signed certs.
+9. Cleanup.

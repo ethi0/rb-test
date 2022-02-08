@@ -1,0 +1,107 @@
+---
+- hosts: localhost
+  connection: local
+  vars_prompt:
+    - name: domainName
+      prompt: "Enter a domain name you want to use (f.e. app.local)"
+      private: no
+      default: app.local
+  tasks:
+    - name: Generate dateTime of certificate issue
+      command: date +'%y.%m.%d.%H_%M_%S'
+      register: dateTime
+    - name: Set facts about certificates
+      set_fact:
+        self_signed_certs:
+          - key: /etc/ssl/private/{{ domainName }}/{{ dateTime.stdout }}/server.key
+            cert: /etc/ssl/certs/{{ domainName}}/{{ dateTime.stdout }}/server.crt
+    - name: Ensure the certificate directory exists (STAGE I)
+      file:
+        path: /etc/ssl/private/{{ domainName }}/{{ dateTime.stdout }}
+        state: directory
+      become: yes
+    - name: Ensure the certificate directory exists (STAGE II)
+      file:
+        path: /etc/ssl/certs/{{ domainName }}/{{ dateTime.stdout }}
+        state: directory
+      become: yes
+    - name: Prepare certificates for nginx
+      command: >
+        openssl req -x509 -nodes -subj '/CN={{ domainName }}' -days 365
+        -newkey rsa:4096 -sha256 -keyout {{ item.key }} -out {{ item.cert }}
+      become: yes
+      with_items: "{{ self_signed_certs }}"
+    - name: Ensure live certificates directory exists
+      file:
+        path: /etc/ssl/live/{{ domainName }}
+        state: directory
+      become: yes
+    - name: Create symlinks of the new certs to the live directory (STAGE I)
+      file:
+        src: "{{ item.key }}"
+        state: link
+        dest: /etc/ssl/live/{{ domainName }}/server.key
+        force: yes
+      with_items: "{{ self_signed_certs }}"
+      become: yes
+    - name: Create symlinks of the new certs to the live directory (STAGE II)
+      file:
+        src: "{{ item.cert }}"
+        state: link
+        dest: /etc/ssl/live/{{ domainName }}/server.crt
+        force: yes
+      with_items: "{{ self_signed_certs }}"
+      become: yes
+    - name: Git clone repo
+      git:
+        repo: https://github.com/dockersamples/linux_tweet_app.git
+        dest: linux_tweet_app
+        clone: yes
+    - name: Get docker-compose up
+      community.docker.docker_compose:
+        project_src: ./
+        build: no
+      register: output
+    - name: Update cache
+      apt:
+        update_cache: yes
+      become: yes
+    - name: Install nginx
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - nginx
+          - ca-certificates
+      become: yes
+    - name: Configure nginx
+      template:
+        src: ./templates/nginx/site.conf
+        dest: /etc/nginx/sites-enabled/{{ domainName }}.conf
+      become: yes
+    - name: Create a Diffie-Hellman group
+      shell: openssl dhparam -out /etc/nginx/dhparam.pem 2048
+      become: yes
+    - name: Reload nginx
+      shell: /etc/init.d/nginx reload
+      become: yes
+    - name: Modify /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        state: present
+        line: "127.0.0.1 app.local"
+      become: yes
+    - name: Allow self-signed certs (STAGE I)
+      copy:
+        src: "{{ item.cert }}"
+        dest: /usr/share/ca-certificates/{{domainName}}.last.crt
+      become: yes
+      with_items: "{{ self_signed_certs }}"
+    - name: Allow self-signed certs (STAGE II)
+      shell: dpkg-reconfigure ca-certificates
+      become: yes
+    - name: Cleanup
+      file:
+        path: linux_tweet_app
+        state: absent

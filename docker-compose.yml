@@ -1,0 +1,18 @@
+version: '2'
+services:
+  rb-web-app:
+    build:
+      context: linux_tweet_app
+      dockerfile: Dockerfile
+    container_name: rb-test
+    networks:
+      net:
+        ipv4_address: 172.99.1.2
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.99.1.0/24
