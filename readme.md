@@ -28,7 +28,7 @@ Features of my task implementation are:
 
     - as we are working on the client-server machine simultaneously, the playbook configures it to work with self-signed certificates
 
-    - container IPAddress is not hardcoded to make config more flexible. I could do the container name not hardcoded too, but it is not required by the task.
+    - container's IPAddress is not hardcoded to make config more flexible. I could do the container name not hardcoded too, but it is not required by the task.
 
 I'm sorry, but I cannot use "systemctl" or "service" utilities on my laptop, so I couldn't use this, for example:
   - name: Reload nginx
