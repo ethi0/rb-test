@@ -62,6 +62,13 @@
         project_src: ./
         build: no
       register: output
+    - name: Get infos on container
+      docker_container_info:
+        name: rb-test
+      register: container_info
+    - name: Print information about container
+      debug:
+        var: container_info.container.NetworkSettings.Networks['rb-test_default'].IPAddress
     - name: Update cache
       apt:
         update_cache: yes
