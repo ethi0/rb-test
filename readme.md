@@ -15,12 +15,19 @@ BASH-scripting was used in ansible playbook to speed up the process of writing t
 Dockerizing the app is not my wish, it's just a part of task, so there is no any other reason why I used it there. I could use additional nginx config, for example.
 
 Features of my task implementation are:
+
     - always fresh certificates
+
     - symlinks to certificates (as it is implemented in certbot)
+
     - using collections to avoid user-interaction
+
     - ability to create any quantity of domains
+
     - templated nginx-config
+
     - as we are working on the client-server machine simultaneously, the playbook configures it to work with self-signed certificates
+
     - container IPAddress is not hardcoded to make config more flexible. I could do the container name not hardcoded too, but it is not required by the task.
 
 I'm sorry, but I cannot use "systemctl" or "service" utilities on my laptop, so I couldn't use this, for example:
