@@ -36,4 +36,4 @@ I'm sorry, but I cannot use "systemctl" or "service" utilities on my laptop, so 
   - name: Reload nginx
     service:
       name: nginx
-      state: reloaded```
+      state: reloaded
