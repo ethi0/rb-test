@@ -6,6 +6,14 @@
       prompt: "Enter a domain name you want to use (f.e. app.local)"
       private: no
       default: app.local
+    - name: projectName
+      prompt: "Enter the name of the project (f.e. test)"
+      private: no
+      default: test
+    - name: containerName
+      prompt: "Enter the name of container that will be created (f.e. web-test)"
+      private: no
+      default: web-test
   tasks:
     - name: Generate dateTime of certificate issue
       command: date +'%y.%m.%d.%H_%M_%S'
@@ -57,18 +65,25 @@
         repo: https://github.com/dockersamples/linux_tweet_app.git
         dest: linux_tweet_app
         clone: yes
+    - name: Create docker-compose.yml from template
+      template:
+        src: templates/docker-compose/docker-compose.j2
+        dest: ./docker-compose-{{ containerName }}.yml
     - name: Get docker-compose up
       community.docker.docker_compose:
         project_src: ./
         build: no
+        files: docker-compose-{{ containerName }}.yml
+        project_name: "{{ projectName }}"
       register: output
-    - name: Get infos on container
+    - name: Get information about a container
       docker_container_info:
-        name: rb-test
+        name: "{{ containerName }}"
       register: container_info
     - name: Print information about container
       debug:
-        var: container_info.container.NetworkSettings.Networks['rb-test_default'].IPAddress
+        var: container_info.container.NetworkSettings.Networks['{{ projectName }}_default'].IPAddress
+      register: ipAddress
     - name: Update cache
       apt:
         update_cache: yes
@@ -82,10 +97,28 @@
           - nginx
           - ca-certificates
       become: yes
-    - name: Configure nginx
-      template:
+    - name: Send nginx-config to the server
+      copy:
         src: ./templates/nginx/site.conf
-        dest: /etc/nginx/sites-enabled/{{ domainName }}.conf
+        dest: /etc/nginx/sites-available/{{ domainName }}.tpl.conf
+      become: yes
+    - name: Configure nginx (STAGE I)
+      replace:
+        path: /etc/nginx/sites-available/{{ domainName }}.tpl.conf
+        regexp: projectName
+        replace: "{{ projectName }}"
+      become: yes
+    - name: Configure nginx (STAGE II)
+      template:
+        src: /etc/nginx/sites-available/{{ domainName }}.tpl.conf
+        dest: /etc/nginx/sites-available/{{ domainName }}.conf
+      become: yes
+    - name: Symlink nginx config
+      file:
+        src: /etc/nginx/sites-available/{{ domainName }}.conf
+        dest: /etc/nginx/sites-enabled/{{ domainName }}.config
+        state: link
+        force: yes
       become: yes
     - name: Create a Diffie-Hellman group
       shell: openssl dhparam -out /etc/nginx/dhparam.pem 2048
@@ -97,7 +130,7 @@
       lineinfile:
         path: /etc/hosts
         state: present
-        line: "127.0.0.1 app.local"
+        line: "127.0.0.1 {{ domainName }}"
       become: yes
     - name: Allow self-signed certs (STAGE I)
       copy:
