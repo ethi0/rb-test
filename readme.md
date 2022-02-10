@@ -1,5 +1,6 @@
 Usage (localhost only):
-ansible-playbook init.yml -K
+
+```ansible-playbook init.yml -K```
 
 Tools used:
 1. Ansible.
@@ -31,7 +32,8 @@ Features of my task implementation are:
     - container's IPAddresses and names is not hardcoded to make config more flexible. You can create a lot of stacks with different containers
 
 I'm sorry, but I cannot use "systemctl" or "service" utilities on my laptop, so I couldn't use this, for example:
+```
   - name: Reload nginx
     service:
       name: nginx
-      state: reloaded
+      state: reloaded```
