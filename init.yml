@@ -112,6 +112,7 @@
       template:
         src: /etc/nginx/sites-available/{{ domainName }}.tpl.conf
         dest: /etc/nginx/sites-available/{{ domainName }}.conf
+      become: yes
     - name: Delete a template
       file:
         path: /etc/nginx/sites-available/{{ domainName }}.tpl.conf
